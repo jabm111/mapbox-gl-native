@@ -22,6 +22,7 @@ NSString *const MGLEventTypeMapTap = @"map.click";
 NSString *const MGLEventTypeMapDragEnd = @"map.dragend";
 NSString *const MGLEventTypeLocation = @"location";
 NSString *const MGLEventTypeVisit = @"visit";
+NSString *const MGLEventTypeLocalDebug = @"debug";
 
 NSString *const MGLEventKeyLatitude = @"lat";
 NSString *const MGLEventKeyLongitude = @"lng";
@@ -36,6 +37,7 @@ NSString *const MGLEventKeyEmailEnabled = @"enabled.email";
 NSString *const MGLEventKeyGestureID = @"gesture";
 NSString *const MGLEventKeyArrivalDate = @"arrivalDate";
 NSString *const MGLEventKeyDepartureDate = @"departureDate";
+NSString *const MGLEventKeyLocalDebugDescription = @"debug.description";
 
 NSString *const MGLEventGestureSingleTap = @"SingleTap";
 NSString *const MGLEventGestureDoubleTap = @"DoubleTap";
@@ -151,6 +153,8 @@ const NSTimeInterval MGLFlushInterval = 60;
 //
 @property (nonatomic) dispatch_queue_t serialQueue;
 
+@property (nonatomic) dispatch_queue_t debugLogSerialQueue;
+
 @end
 
 @implementation MGLMapboxEvents {
@@ -164,6 +168,7 @@ const NSTimeInterval MGLFlushInterval = 60;
         [[NSUserDefaults standardUserDefaults] registerDefaults:@{
              @"MGLMapboxAccountType": accountTypeNumber ? accountTypeNumber : @0,
              @"MGLMapboxMetricsEnabled": @YES,
+             @"MGLMapboxMetricsDebugLoggingEnabled": @NO,
          }];
     }
 }
@@ -171,6 +176,14 @@ const NSTimeInterval MGLFlushInterval = 60;
 + (BOOL)isEnabled {
     return ([[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsEnabled"] &&
             [[NSUserDefaults standardUserDefaults] integerForKey:@"MGLMapboxAccountType"] == 0);
+}
+
+- (BOOL)debugLoggingEnabled {
+    return ([[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"]);
+}
+
++ (BOOL)debugLoggingEnabled {
+    return [[MGLMapboxEvents sharedManager] debugLoggingEnabled];
 }
 
 // Must be called from the main thread. Only called internally.
@@ -237,7 +250,11 @@ const NSTimeInterval MGLFlushInterval = 60;
         
         // Enable Battery Monitoring
         [UIDevice currentDevice].batteryMonitoringEnabled = YES;
-        
+
+        // Configure logging
+        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"MGLMapboxMetricsDebugLoggingEnabled"];
+
+        // Watch for changes to telemetry settings by the user
         __weak MGLMapboxEvents *weakSelf = self;
         _userDefaultsObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSUserDefaultsDidChangeNotification
                                                                                   object:nil
@@ -416,6 +433,11 @@ const NSTimeInterval MGLFlushInterval = 60;
 
             // Flush
             [strongSelf flush];
+
+        if ([strongSelf debugLoggingEnabled]) {
+            [strongSelf writeEventToLocalDebugLog:vevt];
+        }
+
     });
 }
 
@@ -483,6 +505,51 @@ const NSTimeInterval MGLFlushInterval = 60;
             // If this is first new event on queue start timer,
             [strongSelf startTimer];
         }
+
+        if ([strongSelf debugLoggingEnabled]) {
+            [strongSelf writeEventToLocalDebugLog:finalEvent];
+        }
+    });
+}
+
+
+// Can be called from any thread.
+//
++ (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        [[MGLMapboxEvents sharedManager] pushDebugEvent:event withAttributes:attributeDictionary];
+    });
+}
+
+// Can be called from any thread. Called implicitly from public
+// use of +pushDebugEvent:withAttributes:.
+//
+- (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
+    __weak MGLMapboxEvents *weakSelf = self;
+
+    if ( ! _debugLogSerialQueue) {
+        NSString *uniqueID = [[NSProcessInfo processInfo] globallyUniqueString];
+        _debugLogSerialQueue = dispatch_queue_create([[NSString stringWithFormat:@"%@.%@.events.debugLog", _appBundleId, uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
+    }
+
+    dispatch_async(_debugLogSerialQueue, ^{
+
+        MGLMapboxEvents *strongSelf = weakSelf;
+
+        if (!strongSelf || ![self debugLoggingEnabled] || !event) return;
+
+        MGLMutableMapboxEventAttributes *evt = [MGLMutableMapboxEventAttributes dictionaryWithDictionary:attributeDictionary];
+
+        [evt setObject:event forKey:@"event"];
+        [evt setObject:[strongSelf.rfc3339DateFormatter stringFromDate:[NSDate date]] forKey:@"created"];
+        [evt setValue:[strongSelf applicationState] forKey:@"applicationState"];
+        [evt setValue:@([[self class] isEnabled]) forKey:@"telemetryEnabled"];
+
+        // Make immutable version
+        MGLMapboxEventAttributes *finalEvent = [NSDictionary dictionaryWithDictionary:evt];
+
+        [strongSelf writeEventToLocalDebugLog:finalEvent];
+
     });
 }
 
@@ -518,6 +585,12 @@ const NSTimeInterval MGLFlushInterval = 60;
             strongSelf.timer = nil;
         }
     });
+
+    if ([self debugLoggingEnabled]) {
+        [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+            MGLEventKeyLocalDebugDescription: @"flush"
+        }];
+    }
 }
 
 // Can be called from any thread. Called implicitly from public
@@ -544,6 +617,12 @@ const NSTimeInterval MGLFlushInterval = 60;
 
             // Send non blocking HTTP Request to server
             [[_session dataTaskWithRequest:request] resume];
+
+            if ([self debugLoggingEnabled]) {
+                [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+                    MGLEventKeyLocalDebugDescription: @"post"
+                }];
+            }
         }
     });
 }
@@ -570,6 +649,35 @@ const NSTimeInterval MGLFlushInterval = 60;
     } else {
         timerBlock();
     }
+}
+
+- (void) writeEventToLocalDebugLog:(MGLMapboxEventAttributes *)event {
+
+    dispatch_sync(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+
+        NSLog(@"writing event: %@", event[@"event"]);
+
+        if ([NSJSONSerialization isValidJSONObject:event]) {
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:event options:NSJSONWritingPrettyPrinted error:nil];
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+
+            jsonString = [jsonString stringByAppendingString:@",\n"];
+
+            NSString *logFilePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
+
+            NSFileManager *fileManager = [[NSFileManager alloc] init];
+            if ([fileManager fileExistsAtPath:logFilePath]) {
+                //NSLog(@"file handle'ing %@", event[@"event"]);
+                NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:logFilePath];
+                [fileHandle seekToEndOfFile];
+                [fileHandle writeData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]];
+            } else {
+                //NSLog(@"writing new log file %@", event[@"event"]);
+                [fileManager createFileAtPath:logFilePath contents:[jsonString dataUsingEncoding:NSUTF8StringEncoding] attributes:nil];
+            }
+        }
+
+    });
 }
 
 // Can be called from any thread.

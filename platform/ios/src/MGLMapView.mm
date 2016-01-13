@@ -798,6 +798,13 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
         self.dormant = YES;
         _mbglMap->pause();
         [self.glView deleteDrawable];
+
+        if ([MGLMapboxEvents debugLoggingEnabled])
+        {
+            [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+                MGLEventKeyLocalDebugDescription: @"willTerminate"
+            }];
+        }
     }
 }
 
@@ -810,11 +817,27 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
         _displayLink.frameInterval = MGLTargetFrameInterval;
         [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
         _needsDisplayRefresh = YES;
+
+        if ([MGLMapboxEvents debugLoggingEnabled])
+        {
+            [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+                MGLEventKeyLocalDebugDescription: @"validateDisplayLink",
+                @"debug.displayLink": @"valid"
+            }];
+        }
     }
     else if ( ! isVisible && _displayLink)
     {
         [_displayLink invalidate];
         _displayLink = nil;
+
+        if ([MGLMapboxEvents debugLoggingEnabled])
+        {
+            [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+                MGLEventKeyLocalDebugDescription: @"validateDisplayLink",
+                @"debug.displayLink": @"invalid"
+            }];
+        }
     }
 }
 
@@ -865,6 +888,13 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
 
         [self.glView deleteDrawable];
     }
+
+    if ([MGLMapboxEvents debugLoggingEnabled])
+    {
+        [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+            MGLEventKeyLocalDebugDescription: @"sleepGL"
+        }];
+    }
 }
 
 - (void)wakeGL:(__unused NSNotification *)notification
@@ -887,6 +917,13 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
         _mbglMap->resume();
         
         _displayLink.paused = NO;
+    }
+
+    if ([MGLMapboxEvents debugLoggingEnabled])
+    {
+        [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
+            MGLEventKeyLocalDebugDescription: @"wakeGL"
+        }];
     }
 }
 
