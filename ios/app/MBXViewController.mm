@@ -144,8 +144,8 @@ static const CLLocationCoordinate2D WorldTourDestinations[] = {
                                                        delegate:self
                                               cancelButtonTitle:@"Cancel"
                                          destructiveButtonTitle:nil
-                                              otherButtonTitles:@"Reset North",
-                                                                @"Reset Position",
+                                              otherButtonTitles:@"Print telemetry logfile",
+                                                                @"Delete telemetry logfile",
                                                                 @"Cycle debug options",
                                                                 @"Empty Memory",
                                                                 @"Add 100 Points",
@@ -165,11 +165,22 @@ static const CLLocationCoordinate2D WorldTourDestinations[] = {
 {
     if (buttonIndex == actionSheet.firstOtherButtonIndex)
     {
-        [self.mapView resetNorth];
+        NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
+        NSString *fileContents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
+        NSLog(@"%@", fileContents);
     }
     else if (buttonIndex == actionSheet.firstOtherButtonIndex + 1)
     {
-        [self.mapView resetPosition];
+        NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
+        if ([[NSFileManager defaultManager] isDeletableFileAtPath:filePath]) {
+            NSError *error;
+            BOOL success = [[NSFileManager defaultManager] removeItemAtPath:filePath error:&error];
+            if (success) {
+                NSLog(@"Deleted telemetry log.");
+            } else {
+                NSLog(@"Error deleting telemetry log: %@", error.localizedDescription);
+            }
+        }
     }
     else if (buttonIndex == actionSheet.firstOtherButtonIndex + 2)
     {
