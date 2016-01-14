@@ -10,6 +10,8 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.mapbox.mapboxsdk.MapFragment;
+import com.mapbox.mapboxsdk.annotations.IconFactory;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.constants.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.views.MapView;
@@ -55,8 +57,20 @@ public class MapFragmentActivity extends AppCompatActivity {
 
             // move attribution control to right of screen
             mapView.setAttributionGravity(Gravity.BOTTOM | Gravity.END);
-            int tenDp =  (int) getResources().getDimension(R.dimen.attr_margin);
+            int tenDp = (int) getResources().getDimension(R.dimen.attr_margin);
             mapView.setAttributionMargins(0, 0, tenDp, tenDp);
+
+            mapView.addMarker(new MarkerOptions()
+                    .position(new LatLng(50.853658, 4.352419))
+                    .title("Custom")
+                    .snippet("Custom snippet")
+                    .icon(IconFactory.getInstance(view.getContext()).fromResource(R.drawable.rectangle_marker)));
+
+            mapView.addMarker(new MarkerOptions()
+                    .position(new LatLng(50.853650, 4.352410))
+                    .title("Custom")
+                    .snippet("Custom snippet")
+                    .icon(IconFactory.getInstance(view.getContext()).fromResource(R.drawable.round_marker)));
         }
     }
 
