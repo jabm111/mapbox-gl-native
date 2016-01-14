@@ -949,7 +949,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 - (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
     __weak MGLMapboxEvents *weakSelf = self;
 
-    if (/*![self debugLoggingEnabled] || */!event) return;
+    if (![self debugLoggingEnabled] || !event) return;
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
 
@@ -975,7 +975,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 
 - (void) writeEventToLocalDebugLog:(MGLMapboxEventAttributes *)event {
 
-    NSLog(@"%@", event);
+    NSLog(@"%@", [self stringForDebugEvent:event]);
 
     if ( ! self.dateForDebugLogFile) {
         NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
@@ -1014,6 +1014,19 @@ const NSTimeInterval MGLFlushInterval = 60;
         }
 
     });
+}
+
+- (NSString *) stringForDebugEvent:(MGLMapboxEventAttributes *)event {
+    // redact potentially sensitive location details from system console log
+    if ([event[@"event"] isEqualToString:MGLEventTypeLocation] ||
+        [event[@"event"] isEqualToString:MGLEventTypeVisit]) {
+        MGLMutableMapboxEventAttributes *evt = [MGLMutableMapboxEventAttributes dictionaryWithDictionary:event];
+        [evt setObject:@"<redacted>" forKey:@"lat"];
+        [evt setObject:@"<redacted>" forKey:@"lng"];
+        event = evt;
+    }
+
+    return [NSString stringWithFormat:@"Mapbox Telemetry event %@", event];
 }
 
 - (BOOL) isProbablyAppStoreBuild {
