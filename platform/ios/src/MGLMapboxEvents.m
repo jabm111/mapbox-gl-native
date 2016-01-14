@@ -257,7 +257,7 @@ const NSTimeInterval MGLFlushInterval = 60;
         if ([self isProbablyAppStoreBuild]) {
             self.canEnableDebugLogging = NO;
 
-            if ([self debugLoggingEnabled]) {
+            if ([[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"]) {
                 NSLog(@"Telemetry logging is only enabled in non-app store builds.");
             }
         } else {
@@ -1008,7 +1008,7 @@ const NSTimeInterval MGLFlushInterval = 60;
     });
 }
 
-- (BOOL)isProbablyAppStoreBuild {
+- (BOOL) isProbablyAppStoreBuild {
 #if TARGET_IPHONE_SIMULATOR
     return NO;
 #else
