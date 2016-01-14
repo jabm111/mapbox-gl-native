@@ -951,12 +951,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 
     if (/*![self debugLoggingEnabled] || */!event) return;
 
-    if ( ! _debugLogSerialQueue) {
-        NSString *uniqueID = [[NSProcessInfo processInfo] globallyUniqueString];
-        _debugLogSerialQueue = dispatch_queue_create([[NSString stringWithFormat:@"%@.%@.events.debugLog", _appBundleId, uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
-    }
-
-    dispatch_async(_debugLogSerialQueue, ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
 
         MGLMapboxEvents *strongSelf = weakSelf;
 
@@ -982,14 +977,19 @@ const NSTimeInterval MGLFlushInterval = 60;
 
     NSLog(@"%@", event);
 
-    if (!self.dateForDebugLogFile) {
+    if ( ! self.dateForDebugLogFile) {
         NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
         [dateFormatter setDateFormat:@"yyyy'-'MM'-'dd"];
         [dateFormatter setTimeZone:[NSTimeZone systemTimeZone]];
         self.dateForDebugLogFile = [dateFormatter stringFromDate:[NSDate date]];
     }
 
-    dispatch_sync(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+    if ( ! _debugLogSerialQueue) {
+        NSString *uniqueID = [[NSProcessInfo processInfo] globallyUniqueString];
+        _debugLogSerialQueue = dispatch_queue_create([[NSString stringWithFormat:@"%@.%@.events.debugLog", _appBundleId, uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
+    }
+
+    dispatch_sync(_debugLogSerialQueue, ^{
 
         //NSLog(@"writing event: %@", event[@"event"]);
 
