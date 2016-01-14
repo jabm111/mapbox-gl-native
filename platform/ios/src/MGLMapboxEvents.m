@@ -155,6 +155,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 
 @property (atomic) BOOL canEnableDebugLogging;
 @property (nonatomic) dispatch_queue_t debugLogSerialQueue;
+@property (nonatomic) NSString *dateForDebugLogFile;
 
 @end
 
@@ -981,6 +982,13 @@ const NSTimeInterval MGLFlushInterval = 60;
 
     NSLog(@"%@", event);
 
+    if (!self.dateForDebugLogFile) {
+        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+        [dateFormatter setDateFormat:@"yyyy'-'MM'-'dd"];
+        [dateFormatter setTimeZone:[NSTimeZone systemTimeZone]];
+        self.dateForDebugLogFile = [dateFormatter stringFromDate:[NSDate date]];
+    }
+
     dispatch_sync(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
 
         //NSLog(@"writing event: %@", event[@"event"]);
@@ -991,7 +999,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 
             jsonString = [jsonString stringByAppendingString:@",\n"];
 
-            NSString *logFilePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
+            NSString *logFilePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:[NSString stringWithFormat:@"telemetry_log-%@.json", self.dateForDebugLogFile]];
 
             NSFileManager *fileManager = [[NSFileManager alloc] init];
             if ([fileManager fileExistsAtPath:logFilePath]) {
