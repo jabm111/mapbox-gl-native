@@ -163,15 +163,18 @@ static const CLLocationCoordinate2D WorldTourDestinations[] = {
 
 - (void)actionSheet:(UIActionSheet *)actionSheet didDismissWithButtonIndex:(NSInteger)buttonIndex
 {
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyy'-'MM'-'dd"];
+    [dateFormatter setTimeZone:[NSTimeZone systemTimeZone]];
+    NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:[NSString stringWithFormat:@"telemetry_log-%@.json", [dateFormatter stringFromDate:[NSDate date]]]];
+
     if (buttonIndex == actionSheet.firstOtherButtonIndex)
     {
-        NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
         NSString *fileContents = [NSString stringWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:nil];
         NSLog(@"%@", fileContents);
     }
     else if (buttonIndex == actionSheet.firstOtherButtonIndex + 1)
     {
-        NSString *filePath = [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"telemetry_log.json"];
         if ([[NSFileManager defaultManager] isDeletableFileAtPath:filePath]) {
             NSError *error;
             BOOL success = [[NSFileManager defaultManager] removeItemAtPath:filePath error:&error];
