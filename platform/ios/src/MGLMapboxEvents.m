@@ -153,6 +153,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 //
 @property (nonatomic) dispatch_queue_t serialQueue;
 
+@property (atomic) BOOL canEnableDebugLogging;
 @property (nonatomic) dispatch_queue_t debugLogSerialQueue;
 
 @end
@@ -179,7 +180,8 @@ const NSTimeInterval MGLFlushInterval = 60;
 }
 
 - (BOOL)debugLoggingEnabled {
-    return [[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"];
+    return (self.canEnableDebugLogging &&
+            [[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"]);
 }
 
 + (BOOL)debugLoggingEnabled {
@@ -253,6 +255,15 @@ const NSTimeInterval MGLFlushInterval = 60;
 
         // Configure logging
         [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"MGLMapboxMetricsDebugLoggingEnabled"];
+        if ([self isProbablyAppStoreBuild]) {
+            self.canEnableDebugLogging = NO;
+
+            if ([self debugLoggingEnabled]) {
+                NSLog(@"Telemetry logging is only enabled in non-app store builds.");
+            }
+        } else {
+            self.canEnableDebugLogging = YES;
+        }
 
         // Watch for changes to telemetry settings by the user
         __weak MGLMapboxEvents *weakSelf = self;
@@ -683,6 +694,36 @@ const NSTimeInterval MGLFlushInterval = 60;
         }
 
     });
+}
+
+- (BOOL)isProbablyAppStoreBuild {
+#if TARGET_IPHONE_SIMULATOR
+    return NO;
+#else
+    // BugshotKit by Marco Arment https://github.com/marcoarment/BugshotKit/
+    // Adapted from https://github.com/blindsightcorp/BSMobileProvision
+
+    NSString *binaryMobileProvision = [NSString stringWithContentsOfFile:[NSBundle.mainBundle pathForResource:@"embedded" ofType:@"mobileprovision"] encoding:NSISOLatin1StringEncoding error:NULL];
+    if (! binaryMobileProvision) return YES; // no provision
+
+    NSScanner *scanner = [NSScanner scannerWithString:binaryMobileProvision];
+    NSString *plistString;
+    if (! [scanner scanUpToString:@"<plist" intoString:nil] || ! [scanner scanUpToString:@"</plist>" intoString:&plistString]) return YES; // no XML plist found in provision
+    plistString = [plistString stringByAppendingString:@"</plist>"];
+
+    NSData *plistdata_latin1 = [plistString dataUsingEncoding:NSISOLatin1StringEncoding];
+    NSError *error = nil;
+    NSDictionary *mobileProvision = [NSPropertyListSerialization propertyListWithData:plistdata_latin1 options:NSPropertyListImmutable format:NULL error:&error];
+    if (error) return YES; // unknown plist format
+
+    if (! mobileProvision || ! mobileProvision.count) return YES; // no entitlements
+
+    if (mobileProvision[@"ProvisionsAllDevices"]) return NO; // enterprise provisioning
+
+    if (mobileProvision[@"ProvisionedDevices"] && ((NSDictionary *)mobileProvision[@"ProvisionedDevices"]).count) return NO; // development or ad-hoc
+
+    return YES; // expected development/enterprise/ad-hoc entitlements not found
+#endif
 }
 
 // Can be called from any thread.
