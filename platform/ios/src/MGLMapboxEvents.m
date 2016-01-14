@@ -254,7 +254,6 @@ const NSTimeInterval MGLFlushInterval = 60;
         [UIDevice currentDevice].batteryMonitoringEnabled = YES;
 
         // Configure logging
-        [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"MGLMapboxMetricsDebugLoggingEnabled"];
         if ([self isProbablyAppStoreBuild]) {
             self.canEnableDebugLogging = NO;
 
@@ -409,9 +408,9 @@ const NSTimeInterval MGLFlushInterval = 60;
     _locationManager.desiredAccuracy = kCLLocationAccuracyKilometer;
     _locationManager.distanceFilter = 10;
     _locationManager.delegate = self;
-    
+
     [_locationManager startUpdatingLocation];
-    
+
     // -[CLLocationManager startMonitoringVisits] is only available in iOS 8+.
     if ([_locationManager respondsToSelector:@selector(startMonitoringVisits)]) {
         [_locationManager startMonitoringVisits];
