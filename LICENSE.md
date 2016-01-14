@@ -885,3 +885,7 @@ freely, subject to the following restrictions:
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
+
+===========================================================================
+
+Mapbox GL uses portions of BugshotKit by Marco Arment (copyright 2014), licensed under the MIT License.
