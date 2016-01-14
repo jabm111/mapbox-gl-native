@@ -179,7 +179,7 @@ const NSTimeInterval MGLFlushInterval = 60;
 }
 
 - (BOOL)debugLoggingEnabled {
-    return ([[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"]);
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"MGLMapboxMetricsDebugLoggingEnabled"];
 }
 
 + (BOOL)debugLoggingEnabled {
@@ -477,7 +477,7 @@ const NSTimeInterval MGLFlushInterval = 60;
         [evt setObject:strongSelf.instanceID forKey:@"instance"];
         [evt setObject:strongSelf.data.vendorId forKey:@"vendorId"];
         [evt setObject:strongSelf.appBundleId forKeyedSubscript:@"appBundleId"];
-        
+
         // mapbox-events-ios stock attributes
         [evt setValue:strongSelf.data.model forKey:@"model"];
         [evt setValue:strongSelf.data.iOSVersion forKey:@"operatingSystem"];
@@ -509,47 +509,6 @@ const NSTimeInterval MGLFlushInterval = 60;
         if ([strongSelf debugLoggingEnabled]) {
             [strongSelf writeEventToLocalDebugLog:finalEvent];
         }
-    });
-}
-
-
-// Can be called from any thread.
-//
-+ (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-        [[MGLMapboxEvents sharedManager] pushDebugEvent:event withAttributes:attributeDictionary];
-    });
-}
-
-// Can be called from any thread. Called implicitly from public
-// use of +pushDebugEvent:withAttributes:.
-//
-- (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
-    __weak MGLMapboxEvents *weakSelf = self;
-
-    if ( ! _debugLogSerialQueue) {
-        NSString *uniqueID = [[NSProcessInfo processInfo] globallyUniqueString];
-        _debugLogSerialQueue = dispatch_queue_create([[NSString stringWithFormat:@"%@.%@.events.debugLog", _appBundleId, uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
-    }
-
-    dispatch_async(_debugLogSerialQueue, ^{
-
-        MGLMapboxEvents *strongSelf = weakSelf;
-
-        if (!strongSelf || ![self debugLoggingEnabled] || !event) return;
-
-        MGLMutableMapboxEventAttributes *evt = [MGLMutableMapboxEventAttributes dictionaryWithDictionary:attributeDictionary];
-
-        [evt setObject:event forKey:@"event"];
-        [evt setObject:[strongSelf.rfc3339DateFormatter stringFromDate:[NSDate date]] forKey:@"created"];
-        [evt setValue:[strongSelf applicationState] forKey:@"applicationState"];
-        [evt setValue:@([[self class] isEnabled]) forKey:@"telemetryEnabled"];
-
-        // Make immutable version
-        MGLMapboxEventAttributes *finalEvent = [NSDictionary dictionaryWithDictionary:evt];
-
-        [strongSelf writeEventToLocalDebugLog:finalEvent];
-
     });
 }
 
@@ -620,7 +579,8 @@ const NSTimeInterval MGLFlushInterval = 60;
 
             if ([self debugLoggingEnabled]) {
                 [MGLMapboxEvents pushDebugEvent:MGLEventTypeLocalDebug withAttributes:@{
-                    MGLEventKeyLocalDebugDescription: @"post"
+                    MGLEventKeyLocalDebugDescription: @"post",
+                    @"debug.eventsCount": @(events.count)
                 }];
             }
         }
@@ -651,11 +611,56 @@ const NSTimeInterval MGLFlushInterval = 60;
     }
 }
 
+// Can be called from any thread.
+//
++ (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        [[MGLMapboxEvents sharedManager] pushDebugEvent:event withAttributes:attributeDictionary];
+    });
+}
+
+// Can be called from any thread. Called implicitly from public
+// use of +pushDebugEvent:withAttributes:.
+//
+- (void) pushDebugEvent:(NSString *)event withAttributes:(MGLMapboxEventAttributes *)attributeDictionary {
+    __weak MGLMapboxEvents *weakSelf = self;
+
+    if (/*![self debugLoggingEnabled] || */!event) return;
+
+    if ( ! _debugLogSerialQueue) {
+        NSString *uniqueID = [[NSProcessInfo processInfo] globallyUniqueString];
+        _debugLogSerialQueue = dispatch_queue_create([[NSString stringWithFormat:@"%@.%@.events.debugLog", _appBundleId, uniqueID] UTF8String], DISPATCH_QUEUE_SERIAL);
+    }
+
+    dispatch_async(_debugLogSerialQueue, ^{
+
+        MGLMapboxEvents *strongSelf = weakSelf;
+
+        if (!strongSelf) return;
+
+        MGLMutableMapboxEventAttributes *evt = [MGLMutableMapboxEventAttributes dictionaryWithDictionary:attributeDictionary];
+
+        [evt setObject:event forKey:@"event"];
+        [evt setObject:[strongSelf.rfc3339DateFormatter stringFromDate:[NSDate date]] forKey:@"created"];
+        [evt setValue:[strongSelf applicationState] forKey:@"applicationState"];
+        [evt setValue:@([[self class] isEnabled]) forKey:@"telemetryEnabled"];
+        [evt setObject:strongSelf.instanceID forKey:@"instance"];
+
+        // Make immutable version
+        MGLMapboxEventAttributes *finalEvent = [NSDictionary dictionaryWithDictionary:evt];
+
+        [strongSelf writeEventToLocalDebugLog:finalEvent];
+        
+    });
+}
+
 - (void) writeEventToLocalDebugLog:(MGLMapboxEventAttributes *)event {
+
+    NSLog(@"%@", event);
 
     dispatch_sync(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
 
-        NSLog(@"writing event: %@", event[@"event"]);
+        //NSLog(@"writing event: %@", event[@"event"]);
 
         if ([NSJSONSerialization isValidJSONObject:event]) {
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:event options:NSJSONWritingPrettyPrinted error:nil];
@@ -673,7 +678,7 @@ const NSTimeInterval MGLFlushInterval = 60;
                 [fileHandle writeData:[jsonString dataUsingEncoding:NSUTF8StringEncoding]];
             } else {
                 //NSLog(@"writing new log file %@", event[@"event"]);
-                [fileManager createFileAtPath:logFilePath contents:[jsonString dataUsingEncoding:NSUTF8StringEncoding] attributes:nil];
+                [fileManager createFileAtPath:logFilePath contents:[jsonString dataUsingEncoding:NSUTF8StringEncoding] attributes:@{ NSFileProtectionKey: NSFileProtectionCompleteUntilFirstUserAuthentication }];
             }
         }
 
@@ -988,7 +993,7 @@ const NSTimeInterval MGLFlushInterval = 60;
             completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust]);
         }
     }
-    
+
 }
 
 @end
