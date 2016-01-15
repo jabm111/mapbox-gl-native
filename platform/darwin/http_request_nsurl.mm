@@ -45,7 +45,7 @@ public:
     ~HTTPNSURLContext();
 
     HTTPRequestBase* createRequest(const std::string& url,
-                               RequestBase::Callback,
+                               HTTPRequestBase::Callback,
                                std::shared_ptr<const Response>) final;
 
     NSURLSession *session = nil;
@@ -81,7 +81,7 @@ HTTPNSURLContext::~HTTPNSURLContext() {
 }
 
 HTTPRequestBase* HTTPNSURLContext::createRequest(const std::string& url,
-                                             RequestBase::Callback callback,
+                                             HTTPRequestBase::Callback callback,
                                              std::shared_ptr<const Response> response) {
     return new HTTPNSURLRequest(this, url, callback, response);
 }
