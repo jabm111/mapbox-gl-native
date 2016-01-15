@@ -115,6 +115,11 @@ struct EdgeInsets {
     double bottom = 0;  ///< Number of pixels inset from the bottom edge.
     double right = 0;   ///< Number of pixels inset from the right edge.
     
+    inline EdgeInsets() {}
+    
+    inline EdgeInsets(const double t, const double l, const double b, const double r)
+        : top(t), left(l), bottom(b), right(r) {}
+    
     inline operator bool() const {
         return top || left || bottom || right;
     }
@@ -127,7 +132,7 @@ struct EdgeInsets {
     }
 
     inline EdgeInsets operator+(const EdgeInsets& o) const {
-        return EdgeInsets {
+        return {
             top + o.top, left + o.left, bottom + o.bottom, right + o.right,
         };
     }
