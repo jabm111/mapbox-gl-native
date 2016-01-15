@@ -401,15 +401,11 @@ LatLng Map::latLngForProjectedMeters(const ProjectedMeters& projectedMeters) con
 }
 
 PrecisionPoint Map::pixelForLatLng(const LatLng& latLng) const {
-    PrecisionPoint point = transform->getState().latLngToPoint(latLng);
-    point.y = getHeight() - point.y;
-    return point;
+    return transform->latLngToPoint(latLng);
 }
 
 LatLng Map::latLngForPixel(const PrecisionPoint& pixel) const {
-    PrecisionPoint flippedPoint = pixel;
-    flippedPoint.y = getHeight() - flippedPoint.y;
-    return transform->getState().pointToLatLng(flippedPoint);
+    return transform->pointToLatLng(pixel);
 }
 
 #pragma mark - Annotations
