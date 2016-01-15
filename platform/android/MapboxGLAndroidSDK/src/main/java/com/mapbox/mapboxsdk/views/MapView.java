@@ -2320,8 +2320,8 @@ public final class MapView extends FrameLayout {
 
         mNativeMapView.addAnnotationIcon(
                 id,
-                (int) (bitmap.getWidth() / scale),
-                (int) (bitmap.getHeight() / scale),
+                bitmap.getWidth(),
+                bitmap.getHeight(),
                 scale, buffer.array());
     }
 
