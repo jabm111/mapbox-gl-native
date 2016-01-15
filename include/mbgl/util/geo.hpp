@@ -127,7 +127,7 @@ struct EdgeInsets {
     }
 
     inline EdgeInsets operator+(const EdgeInsets& o) const {
-        return {
+        return EdgeInsets {
             top + o.top, left + o.left, bottom + o.bottom, right + o.right,
         };
     }
