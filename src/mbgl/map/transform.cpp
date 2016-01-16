@@ -655,5 +655,5 @@ PrecisionPoint Transform::latLngToPoint(const LatLng& latLng) const {
 LatLng Transform::pointToLatLng(const PrecisionPoint& point) const {
     PrecisionPoint flippedPoint = point;
     flippedPoint.y = state.height - flippedPoint.y;
-    return state.pointToLatLng(point);
+    return state.pointToLatLng(flippedPoint);
 }
