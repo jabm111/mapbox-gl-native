@@ -2304,11 +2304,11 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
     size_t width = CGImageGetWidth(image);
     size_t height = CGImageGetHeight(image);
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    std::string pixels(width * height * 4, '\0');
+    mbgl::PremultipliedImage cPremultipliedImage(width, height);
     size_t bytesPerPixel = 4;
     size_t bytesPerRow = bytesPerPixel * width;
     size_t bitsPerComponent = 8;
-    char *pixelData = const_cast<char *>(pixels.data());
+    char *pixelData = reinterpret_cast<char *>(cPremultipliedImage.data.get());
     CGContextRef context = CGBitmapContextCreate(pixelData, width, height, bitsPerComponent, bytesPerRow, colorSpace, kCGImageAlphaPremultipliedLast);
     CGContextDrawImage(context, CGRectMake(0, 0, width, height), image);
     CGContextRelease(context);
@@ -2316,10 +2316,8 @@ std::chrono::steady_clock::duration MGLDurationInSeconds(float duration)
 
     // add sprite
     auto cSpriteImage = std::make_shared<mbgl::SpriteImage>(
-        uint16_t(width),
-        uint16_t(height),
-        float(annotationImage.image.scale),
-        std::move(pixels));
+        std::move(cPremultipliedImage), 
+        float(annotationImage.image.scale));
 
     // sprite upload
     NSString *symbolName = [MGLAnnotationSpritePrefix stringByAppendingString:annotationImage.reuseIdentifier];
