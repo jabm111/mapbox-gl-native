@@ -1,23 +1,46 @@
-# Mapbox GL Native
+# [Mapbox Android SDK](https://www.mapbox.com/android-sdk/)
 
-A library for embedding interactive vector maps into native applications on multiple platforms. It takes stylesheets that conform to the [Mapbox GL Style Specification](https://github.com/mapbox/mapbox-gl-style-spec/), applies them to vector tiles that conform to the [Mapbox Vector Tile Specification](https://github.com/mapbox/vector-tile-spec), and renders them using OpenGL. [Mapbox GL JS](https://github.com/mapbox/mapbox-gl-js) is the WebGL-based counterpart, designed for use on the Web.
+[![Bitrise](https://www.bitrise.io/app/79cdcbdc42de4303.svg?token=_InPF8bII6W7J6kFr-L8QQ&branch=master)](https://www.bitrise.io/app/79cdcbdc42de4303)
 
-## The Mapbox GL ecosystem
+A library based on [Mapbox GL Native](../../README.md) for embedding interactive vector maps into Java applications on Android devices.
 
-This repository hosts the cross-platform Mapbox GL Native library, plus convenient SDKs for several platforms. The cross-platform library comes with a [GLFW](https://github.com/glfw/glfw)-based demo application for Ubuntu Linux and OS X. The SDKs target the usual languages on their respective platforms:
+This repository is for day-to-day development of the SDK. Building the SDK yourself requires [a number of dependencies and steps](../../INSTALL.md) that are unnecessary for developing production applications. For production applications, please consider installing an official, prebuilt release instead; see the [Mapbox Android SDK website](https://www.mapbox.com/android-sdk/) for installation instructions.
 
-SDK | Languages | Build status
-----|-----------|-------------
-[Mapbox GL Native](INSTALL.md) | C++14 | [![Travis](https://travis-ci.org/mapbox/mapbox-gl-native.svg?branch=master)](https://travis-ci.org/mapbox/mapbox-gl-native/builds)
-[Mapbox Android SDK](platform/android/) | Java | [![Bitrise](https://www.bitrise.io/app/79cdcbdc42de4303.svg?token=_InPF8bII6W7J6kFr-L8QQ&branch=master)](https://www.bitrise.io/app/79cdcbdc42de4303)
-[Mapbox iOS SDK](platform/ios/) | Objective-C or Swift | [![Bitrise](https://www.bitrise.io/app/7514e4cf3da2cc57.svg?token=OwqZE5rSBR9MVWNr_lf4sA&branch=master)](https://www.bitrise.io/app/7514e4cf3da2cc57)
-[Mapbox OS X SDK](platform/osx/) | Objective-C or Swift | [![Bitrise](https://www.bitrise.io/app/155ef7da24b38dcd.svg?token=4KSOw_gd6WxTnvGE2rMttg&branch=master)](https://www.bitrise.io/app/155ef7da24b38dcd)
-[node-mapbox-gl-native](platform/node/) | Node.js | [![Travis](https://travis-ci.org/mapbox/mapbox-gl-native.svg?branch=master)](https://travis-ci.org/mapbox/mapbox-gl-native/builds)
+## Installing the SDK
 
-Additional Mapbox GL Native–based libraries are developed outside of this repository:
+* [Installing the Mapbox Android SDK on Linux](INSTALL_LINUX.md)
+* [Installing the Mapbox Android SDK on OS X](INSTALL_OSX.md)
 
-* [React Native Mapbox GL](https://github.com/mapbox/react-native-mapbox-gl) for React Native applications on iOS and Android
-* [QMapboxGL](https://github.com/tmpsantos/qmapboxgl) for Qt-based applications
-* Telerik’s [Mapbox plugin](http://plugins.telerik.com/cordova/plugin/mapbox) for Apache Cordova applications
+## Setting up the Android emulator
 
-If your platform or hybrid application framework isn’t listed here, consider embedding [Mapbox GL JS](https://github.com/mapbox/mapbox-gl-js) using the standard Web capabilities on your platform.
+The Mapbox Android SDK requires Android 4.0.3+ (API level 15+).
+
+If you want to run the test app in the emulator, we recommend the x86 build because it will run a lot faster.
+
+First ensure you have an `MAPBOX_ACCESS_TOKEN` environment variable set, as described below. Then, create an x86 build:
+
+    make android-lib-x86
+
+In Android Studio, create an x86 AVD (Android Virtual Device):
+
+- Open AVD Manager via the Tools menu -> Android -> AVD Manager
+- Click "Create Virtual Device" at the bottom on AVD Manager window
+- Select one of the device profiles, for example the Nexus 4
+- Click "Next"
+- Select a Lollipop or Kitkat release with ABI of x86. If the line is greyed out click Download to download the OS files.
+- Click "Next"
+- Under "Emulated Performance" check "Host GPU" and uncheck "Store a snapshot for faster startup"
+- Click "Finish"
+- Close the AVD Manager
+
+Now when you run or debug the Android project you will see a window "Choose Device". Select your new AVD from drop down under "Launch emulator". If you select "Use same device for future launches" Android Studio will remember the selection and not ask again.
+
+## Running Mapbox GL Native on a hardware Android device
+
+The Mapbox Android SDK requires Android 4.0.3+ (API level 15+).
+
+First read the [Google documentation](http://developer.android.com/tools/device.html) to set up your device and your OS to connect to the device.
+
+When you plug your device in and then run or debug the Android project you will see a window "Choose Device". Choose your device from the "Choose a running device" list.
+
+If your device does not show up, double check the [Google documentation](http://developer.android.com/tools/device.html).

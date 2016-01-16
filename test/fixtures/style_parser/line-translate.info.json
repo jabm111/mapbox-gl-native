@@ -1,7 +1,0 @@
-{
-    "default": {
-        "log": [
-            [1, "WARNING", "ParseStyle", "value of 'line-translate' must be an array of two numbers"]
-        ]
-    }
-}

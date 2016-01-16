@@ -1,7 +1,0 @@
-{
-    "default": {
-        "log": [
-            [1, "WARNING", "ParseStyle", "value of 'text-size' must be a number, or a number function"]
-        ]
-    }
-}

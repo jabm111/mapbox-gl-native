@@ -1,7 +1,0 @@
-{
-    "default": {
-        "log": [
-            [1, "WARNING", "ParseStyle", "value of 'circle-color' must be a string"]
-        ]
-    }
-}
